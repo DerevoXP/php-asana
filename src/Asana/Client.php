@@ -15,6 +15,7 @@ use Asana\Resources\Portfolios;
 use Asana\Resources\ProjectMemberships;
 use Asana\Resources\Projects;
 use Asana\Resources\Users;
+use Exception;
 
 class Client
 {
@@ -66,6 +67,7 @@ class Client
         $this->user_task_lists = new Resources\UserTaskLists($this);
         $this->workspaces = new Resources\Workspaces($this);
         $this->webhooks = new Resources\Webhooks($this);
+        $this->stopActive = false; // If false - some exception occured
     }
 
     public static function accessToken($accessToken, $options = array())
@@ -106,11 +108,34 @@ class Client
                 if ($retryCount < $options['max_retries']) {
                     $this->handleRetryableError($e, $retryCount);
                     $retryCount++;
-                } else {
-                    throw $e;
+                } else { // Catch final RetryableAsanaError
+                    $this->exceptionLogger($e);
+                    
+                    return [];
                 }
+            } catch (Exception $e) { // Catch Errors\AsanaError::handleErrorResponse($response);
+                    $this->exceptionLogger($e);
+                    
+                    return [];
             }
         }
+    }
+    
+    /**
+     * Function for your application to check some exception.
+     *
+     * @param Exception $e - some exception in $this->request()
+     *
+     * @return void
+     */
+    private function exceptionLogger($e)
+    {
+        // Put this some code to log exception in file or something else. Do not forgot to comment "throw $e"
+        
+        $this-stopActive = true; // Check $client->stopActive in your application.
+        
+        // No need here if you want to log exception and continue working. Comment it!
+        throw $e;
     }
 
     private function logAsanaChangeHeaders($reqHeaders, $resHeaders)
